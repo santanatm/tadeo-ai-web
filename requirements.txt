@@ -3,3 +3,5 @@ groq
 langchain-community
 tavily-python
 fpdf
+python-docx
+PyPDF2
