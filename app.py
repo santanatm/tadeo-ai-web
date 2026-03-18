@@ -50,7 +50,5 @@ if st.button("Ejecutar Tadeo AI"):
             except Exception as e:
                 # Este 'except' debe estar alineado perfectamente con el 'try'
                 st.error(f"Error detectado: {e}")
-                else:
-                    st.error(f"Error en la investigación: {e}")
     else:
         st.warning("Por favor, escribe una pregunta primero.")
