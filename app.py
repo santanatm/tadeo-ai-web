@@ -3,49 +3,51 @@ import google.generativeai as genai
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
-# 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Tadeo AI", page_icon="🤖")
+# 1. CONFIGURACIÓN BÁSICA (Layout centrado para que se vea bien en WordPress)
+st.set_page_config(page_title="Tadeo AI", layout="centered")
 st.title("🤖 TADEO AI")
 
-# 2. EXTRACCIÓN DE LLAVES
+# 2. CARGA DE LLAVES DESDE SECRETS
 GOOGLE_KEY = st.secrets.get("GOOGLE_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
 if not GOOGLE_KEY or not TAVILY_KEY:
-    st.error("❌ ERROR: No se detectan las llaves API.")
-    st.stop() 
+    st.error("Faltan llaves API en los Secrets de Streamlit.")
+    st.stop()
 
-# 3. INICIALIZAR HERRAMIENTAS
+# 3. CONFIGURACIÓN DE MODELOS (VERSIONES ESTABLES)
 try:
     genai.configure(api_key=GOOGLE_KEY)
-    # Volvemos a 'gemini-pro' para evitar el error 404 de modelos nuevos
+    
+    # Usamos el modelo más básico y compatible para evitar el error 404
     model = genai.GenerativeModel('gemini-pro')
     
+    # Configuración de búsqueda
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
     search = TavilySearchResults(api_wrapper=api_wrapper)
     
     st.success("✅ Tadeo AI está listo.")
-
 except Exception as e:
-    st.error(f"Error de conexión: {e}")
+    st.error(f"Error al iniciar: {e}")
 
-# 4. INTERFAZ DE USUARIO
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Precio del Bitcoin...")
+# 4. INTERFAZ Y LÓGICA
+pregunta = st.text_input("¿Qué quieres investigar hoy?")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
-        with st.spinner("Investigando..."):
+        with st.spinner("Buscando información..."):
             try:
-                # Ejecutar búsqueda
-                busqueda = search.run(pregunta)
+                # Paso 1: Buscar datos
+                resultados = search.run(pregunta)
                 
-                # Generar respuesta
-                prompt = f"Actúa como un experto. Datos actuales: {busqueda}\nPregunta: {pregunta}"
-                respuesta = model.generate_content(prompt)
+                # Paso 2: Generar respuesta
+                prompt_final = f"Datos actuales: {resultados}\n\nPregunta: {pregunta}"
+                respuesta = model.generate_content(prompt_final)
                 
                 st.subheader("📝 Resultado:")
                 st.write(respuesta.text)
             except Exception as e:
-                st.error(f"Error detectado: {e}")
+                # Mostramos el error directo para saber qué pasa exactamente
+                st.error(f"Hubo un problema: {e}")
     else:
-        st.warning("Por favor, escribe una pregunta primero.")
+        st.warning("Por favor, escribe algo primero.")
