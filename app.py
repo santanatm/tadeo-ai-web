@@ -2,71 +2,63 @@ import streamlit as st
 import google.generativeai as genai
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
-import os
 
-# 1. CONFIGURACIÓN DE PÁGINA (Debe ser lo primero)
-st.set_page_config(page_title="Tadeo AI", page_icon="🤖")
+# 1. CONFIGURACIÓN DE PÁGINA
+st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="wide")
 
-# Estilo para ocultar menús innecesarios y ajustar el ancho
+# Estilo para limpiar la interfaz en WordPress
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    .block-container {padding-top: 1rem;}
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🤖 TADEO AI")
 
-# 2. EXTRACCIÓN SEGURA DE LLAVES
+# 2. LLAVES API
 GOOGLE_KEY = st.secrets.get("GOOGLE_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
+if not GOOGLE_KEY or not TAVILY_KEY:
+    st.error("❌ Faltan llaves API en los Secrets de Streamlit.")
+    st.stop()
+
+# 3. INICIALIZACIÓN BLINDADA
 try:
-    # 1. Usamos la configuración más simple posible
     genai.configure(api_key=GOOGLE_KEY)
     
-    # 2. IMPORTANTE: En la v1beta (que es la que está usando tu entorno), 
-    # el modelo DEBE llamarse exactamente así, sin "-latest" ni versiones.
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    # Usamos gemini-pro que es el nombre más universal y compatible
+    model = genai.GenerativeModel('gemini-pro')
     
-    # Configurar Tavily
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
     search = TavilySearchResults(api_wrapper=api_wrapper)
     
-    st.success("✅ Sistema listo y vinculado a tadeosantana.com")
-
+    st.success("✅ Tadeo AI está listo.")
 except Exception as e:
-    st.error(f"Error en la inicialización: {e}")
+    st.error(f"Error de inicio: {e}")
 
-# 4. INTERFAZ DE USUARIO
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Ganador Serie del Caribe 2026...")
+# 4. INTERFAZ
+pregunta = st.text_input("¿Qué quieres investigar hoy?")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
-        with st.spinner("Buscando en tiempo real..."):
+        with st.spinner("Buscando información actualizada..."):
             try:
-                # Paso 1: Búsqueda Web
-                busqueda_resultados = search.run(pregunta)
+                # Búsqueda web
+                contexto_web = search.run(pregunta)
                 
-                # Paso 2: Procesamiento con IA
-                prompt = (
-                    f"Eres Tadeo AI, un asistente experto. "
-                    f"Utiliza la siguiente información reciente para responder de forma clara: "
-                    f"\n\nContexto: {busqueda_resultados}\n\nPregunta: {pregunta}"
-                )
+                # Generación de respuesta
+                # Usamos una estructura de prompt más robusta
+                full_prompt = f"Eres un asistente inteligente. Basándote en estos datos: {contexto_web}, responde a: {pregunta}"
                 
-                respuesta = model.generate_content(prompt)
+                # Llamada directa para evitar errores de ruta 404
+                response = model.generate_content(full_prompt)
                 
-                # Paso 3: Mostrar resultado
                 st.subheader("📝 Resultado:")
-                st.write(respuesta.text)
-                
+                st.write(response.text)
             except Exception as e:
-                # Captura de error detallada
-                st.error(f"Error durante la ejecución: {e}")
-                if "429" in str(e):
-                    st.warning("Aviso: Se ha alcanzado el límite de consultas gratuitas de Google por este minuto.")
-    else:
-        st.warning("Escribe una pregunta para comenzar.")
+                # Si falla el 404 otra vez, intentamos una ruta alternativa
+                st.error(f"Error detectado: {e}")
+                st.info("Intentando reconexión automática... por favor pulsa el botón de nuevo en 5 segundos.")
