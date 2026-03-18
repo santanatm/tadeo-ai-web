@@ -23,17 +23,13 @@ st.title("🤖 TADEO AI")
 GOOGLE_KEY = st.secrets.get("GOOGLE_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
-# 3. VALIDACIÓN Y CONFIGURACIÓN
-if not GOOGLE_KEY or not TAVILY_KEY:
-    st.error("❌ ERROR: No se detectan las llaves API en Secrets.")
-    st.stop() 
-
 try:
-    # Configuración forzada a la versión estable mediante 'rest'
-    genai.configure(api_key=GOOGLE_KEY, transport='rest')
+    # 1. Usamos la configuración más simple posible
+    genai.configure(api_key=GOOGLE_KEY)
     
-    # Usamos el modelo más estable para evitar errores 404
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    # 2. IMPORTANTE: En la v1beta (que es la que está usando tu entorno), 
+    # el modelo DEBE llamarse exactamente así, sin "-latest" ni versiones.
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     # Configurar Tavily
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
