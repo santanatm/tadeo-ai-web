@@ -3,31 +3,22 @@ from groq import Groq
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from fpdf import FPDF
+from streamlit_mic_recorder import mic_recorder
+from gtts import gTTS
 import io
+import base64
 
 # 1. PAGE CONFIGURATION
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Premium CSS Customization
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {display: none !important;}
     header {display: none !important;}
     .block-container {padding-top: 1rem !important;}
-    
-    /* File Uploader and Multimedia Buttons Style */
-    .stFileUploader section {
-        border: 1px solid #bfa34b !important;
-        border-radius: 5px;
-    }
-    .stDownloadButton > button {
-        background-color: #333333 !important;
-        color: #bfa34b !important;
-        border: 1px solid #bfa34b !important;
-        width: 100%;
-        font-weight: bold;
-    }
+    .stFileUploader section { border: 1px solid #bfa34b !important; border-radius: 5px; }
+    .stDownloadButton > button { background-color: #333333 !important; color: #bfa34b !important; border: 1px solid #bfa34b !important; width: 100%; font-weight: bold; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -41,7 +32,7 @@ with col_foto:
 with col_titulo:
     st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
-# 3. KEYS AND ENGINES CONFIGURATION
+# 3. KEYS AND ENGINES
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
@@ -56,7 +47,7 @@ try:
 except Exception as e:
     st.error(f"Initialization error: {e}")
 
-# 4. PDF GENERATION FUNCTION
+# 4. UTILITY FUNCTIONS
 def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
@@ -67,48 +58,47 @@ def crear_pdf(texto, consulta):
     pdf.multi_cell(0, 10, txt=f"Question: {consulta}")
     pdf.ln(5)
     pdf.set_font("Arial", size=11)
-    # Clean text for latin-1 compatibility
     texto_seguro = texto.encode('latin-1', 'replace').decode('latin-1')
     pdf.multi_cell(0, 10, txt=texto_seguro)
     return pdf.output(dest='S').encode('latin-1')
 
+def text_to_speech(text):
+    tts = gTTS(text=text, lang='en')
+    fp = io.BytesIO()
+    tts.write_to_fp(fp)
+    return fp
+
 # 5. MULTIMODAL INPUT
 archivo_subido = st.file_uploader("Upload a file to analyze", type=['pdf', 'txt', 'docx'])
 
-# Pressing ENTER here triggers the execution
-pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)", key="user_input")
+# Voice Dictation Column
+col_text, col_mic = st.columns([0.9, 0.1])
+with col_mic:
+    st.write("") # Alignment
+    audio_input = mic_recorder(start_prompt="🎤", stop_prompt="🛑", key='recorder')
 
-# Visual functional buttons
-col_v1, col_v2, col_v3 = st.columns([1, 1, 8])
-with col_v1:
-    st.button("🎤", help="Voice Dictation")
-with col_v2:
-    st.button("🔊", help="Listen to the answer")
+# Text Input
+input_text = ""
+if audio_input:
+    input_text = audio_input['text']
 
-# 6. AUTOMATIC EXECUTION LOGIC
+pregunta = st.text_input("", value=input_text, placeholder="What do you want to know? (e.g. Who was Albert Einstein?)", key="user_input")
+
+# 6. EXECUTION LOGIC
 if pregunta:
     with st.spinner("Tadeo is processing your request..."):
         try:
-            # Process file context if exists
-            contenido_archivo = ""
-            if archivo_subido:
-                contenido_archivo = f"\n[Attached document detected: {archivo_subido.name}]"
+            contenido_archivo = f"\n[Attached document: {archivo_subido.name}]" if archivo_subido else ""
             
-            # Web search with 401 error protection
             try:
                 resultados_raw = search.run(pregunta)
-                if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
-                    resultados_raw = "No recent web data is available at the moment."
+                if "401" in str(resultados_raw): resultados_raw = "No recent web data available."
             except:
-                resultados_raw = "No recent web data is available at the moment."
+                resultados_raw = "No recent web data available."
 
-            # AI Response Generation
             chat_completion = client.chat.completions.create(
                 messages=[
-                    {
-                        "role": "system", 
-                        "content": "You are Tadeo AI, an expert assistant. Respond in English. If a file is attached, analyze it. Ignore technical API errors."
-                    },
+                    {"role": "system", "content": "You are Tadeo AI. Respond in English. Analyze files if attached. Ignore API errors."},
                     {"role": "user", "content": f"Context: {resultados_raw}{contenido_archivo}\n\nQuestion: {pregunta}"}
                 ],
                 model="llama-3.3-70b-versatile",
@@ -118,16 +108,14 @@ if pregunta:
             st.subheader("📝 Result:")
             st.write(respuesta_final)
             
-            # PDF Download Button
+            # Listen to the Answer
+            if st.button("🔊 Listen to the answer"):
+                audio_fp = text_to_speech(respuesta_final)
+                st.audio(audio_fp, format='audio/mp3')
+            
+            # PDF Download
             pdf_bytes = crear_pdf(respuesta_final, pregunta)
-            st.download_button(
-                label="📥 Download report as PDF", 
-                data=pdf_bytes, 
-                file_name="Tadeo_AI_Report.pdf", 
-                mime="application/pdf"
-            )
+            st.download_button(label="📥 Download report as PDF", data=pdf_bytes, file_name="Tadeo_AI_Report.pdf", mime="application/pdf")
             
         except Exception as e:
             st.error(f"An error occurred: {e}")
-elif archivo_subido and not pregunta:
-    st.info("Please type a question about the uploaded file and press ENTER.")
