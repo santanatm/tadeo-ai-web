@@ -29,14 +29,22 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-#st.title("🤖 TADEO AI")
-# 4. INTERFAZ DE USUARIO personalizada
-try:
-    st.image("Tadeo_Santana.png", width=50) 
-except:
-    st.write("🤖") # Icono de respaldo si la foto no carga
+# 4. INTERFAZ DE USUARIO personalizada (Foto y Título en la misma línea)
 
-st.title("TADEO AI")
+# Creamos dos columnas: una pequeña para la foto y una más grande para el título
+col1, col2 = st.columns([1, 5]) 
+
+with col1:
+    try:
+        # Mostramos tu foto
+        st.image("Tadeo_Santana.png", width=60) 
+    except:
+        st.write("🤖")
+
+with col2:
+    # Mostramos el título alineado con la foto
+    # Usamos un poco de margen superior (MT) para que el texto baje y se centre con tu foto
+    st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
 # 2. LLAVES API
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
