@@ -4,15 +4,19 @@ from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
 # 1. CONFIGURACIÓN DE PÁGINA
-# 'layout="centered"' ayuda a que se vea mejor al embeberlo en WordPress
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS para ocultar elementos de Streamlit y que parezca una app nativa en tu web
+# Estilo CSS avanzado para limpiar la interfaz y quitar la barra inferior
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+    /* Esta línea quita específicamente la barra de 'Built with Streamlit' */
+    .stAppDeployButton {display:none;}
+    footer {display:none;}
+    st-emotion-cache-zq5wms {display:none;}
+    /* Quitar el borde y padding extra */
     .block-container {padding-top: 2rem;}
     </style>
     """, unsafe_allow_html=True)
@@ -42,7 +46,7 @@ except Exception as e:
     st.error(f"Error al iniciar los servicios: {e}")
 
 # 4. INTERFAZ DE USUARIO
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: ¿Quién ganó la Serie del Caribe 2026?")
+pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: ¿Quién fue Albert Einstein?")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
