@@ -29,7 +29,14 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-st.title("🤖 TADEO AI")
+#st.title("🤖 TADEO AI")
+# 4. INTERFAZ DE USUARIO personalizada
+try:
+    st.image("Tadeo_Santana.png", width=50) 
+except:
+    st.write("🤖") # Icono de respaldo si la foto no carga
+
+st.title("TADEO AI")
 
 # 2. LLAVES API
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
@@ -103,10 +110,4 @@ if st.button("Ejecutar Tadeo AI"):
     else:
         st.warning("Escribe una pregunta primero.")
 
-# 4. INTERFAZ DE USUARIO personalizada
-try:
-    st.image("Tadeo_Santana.png", width=100) 
-except:
-    st.write("🤖") # Icono de respaldo si la foto no carga
 
-st.title("TADEO AI")
