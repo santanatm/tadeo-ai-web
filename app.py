@@ -78,7 +78,7 @@ except Exception as e:
     st.error(f"Error de inicio: {e}")
 
 # 5. INTERFAZ
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: ¿Quién fue Albert Einstein?")
+pregunta = st.text_input("", placeholder="What do you want to know? e.g. Who was Albert Einstein?")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
