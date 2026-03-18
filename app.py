@@ -5,7 +5,7 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from fpdf import FPDF
 
 # 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
+st.set_page_config(page_title="", page_icon="🤖", layout="centered")
 
 st.markdown("""
     <style>
@@ -59,7 +59,7 @@ def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Informe de Tadeo AI", ln=True, align='C')
+    pdf.cell(200, 10, txt="Tadeo AI Report", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
     pdf.multi_cell(0, 10, txt=f"Pregunta: {consulta}")
@@ -80,7 +80,7 @@ except Exception as e:
 # 5. INTERFAZ
 pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?")
 
-if st.button("Ejecutar Tadeo AI"):
+if st.button("Run Tadeo AI"):
     if pregunta:
         with st.spinner("Investigando..."):
             try:
