@@ -6,18 +6,35 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS avanzado para limpiar la interfaz y quitar la barra inferior
+# Estilo CSS "Agresivo" para limpiar la interfaz al 100%
 st.markdown("""
     <style>
+    /* Ocultar menú, pie de página y cabecera estándar */
     #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    /* Esta línea quita específicamente la barra de 'Built with Streamlit' */
-    .stAppDeployButton {display:none;}
-    footer {display:none;}
-    st-emotion-cache-zq5wms {display:none;}
-    /* Quitar el borde y padding extra */
-    .block-container {padding-top: 2rem;}
+    footer {display: none !important;}
+    header {display: none !important;}
+    
+    /* Ocultar la barra específica de 'Built with Streamlit' y el botón de Fullscreen */
+    .stDeployButton {display:none !important;}
+    div[data-testid="stStatusWidget"] {display:none !important;}
+    div[data-testid="stDecoration"] {display:none !important;}
+    
+    /* Eliminar el espacio en blanco extra en la parte inferior */
+    .main .block-container {
+        padding-bottom: 0rem;
+    }
+    
+    /* Estilizar el botón para que combine con tu web (Dorado/Negro) */
+    div.stButton > button:first-child {
+        background-color: #bfa34b;
+        color: white;
+        border: none;
+    }
+    div.stButton > button:first-child:hover {
+        background-color: #000000;
+        color: #bfa34b;
+        border: 1px solid #bfa34b;
+    }
     </style>
     """, unsafe_allow_html=True)
 
