@@ -114,13 +114,13 @@ if pregunta:
             )
             
             respuesta_final = chat_completion.choices[0].message.content
-            st.subheader("📝 Resultado:")
+            st.subheader("📝 Result found:")
             st.write(respuesta_final)
             
             # Botón de descarga PDF (aparece solo después del resultado)
             pdf_bytes = crear_pdf(respuesta_final, pregunta)
             st.download_button(
-                label="📥 Descargar respuesta en PDF", 
+                label="📥 Download result as PDF", 
                 data=pdf_bytes, 
                 file_name="Tadeo_AI_Report.pdf", 
                 mime="application/pdf"
