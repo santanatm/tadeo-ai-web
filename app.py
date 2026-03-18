@@ -1,47 +1,107 @@
-import streamlit as st
+ import streamlit as st
+
 import google.generativeai as genai
+
 from langchain_community.tools.tavily_search import TavilySearchResults
+
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 
-# CONFIGURACIÓN BÁSICA
-st.set_page_config(page_title="Tadeo AI", layout="centered")
+import os
+
+
+
+# 1. CONFIGURACIÓN DE PÁGINA
+
+st.set_page_config(page_title="Tadeo AI", page_icon="🤖")
+
 st.title("🤖 TADEO AI")
 
-# LLAVES
+
+
+# 2. EXTRACCIÓN SEGURA DE LLAVES
+
+# Buscamos en Secrets (Streamlit Cloud) o en Variables de Entorno (Local)
+
 GOOGLE_KEY = st.secrets.get("GOOGLE_API_KEY")
+
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
+
+
+# 3. VALIDACIÓN DE LLAVES
+
 if not GOOGLE_KEY or not TAVILY_KEY:
-    st.error("Faltan las llaves API en Secrets.")
-    st.stop()
+
+    st.error("❌ ERROR: No se detectan las llaves API.")
+
+    st.info("Asegúrate de haber guardado las llaves en 'Manage App' -> 'Settings' -> 'Secrets'.")
+
+    st.stop() 
+
+
+
+# 4. INICIALIZAR HERRAMIENTAS
 
 try:
-    # Volvemos a la configuración estándar
+
+    # Configurar Google Gemini
+
     genai.configure(api_key=GOOGLE_KEY)
-    
-    # IMPORTANTE: Usamos 'gemini-pro' que es el nombre más viejo y compatible
-    # Esto evita el error 404 de "model not found"
+
     model = genai.GenerativeModel('gemini-pro')
+
     
+
+    # Configurar Tavily de forma blindada
+
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
+
     search = TavilySearchResults(api_wrapper=api_wrapper)
+
     
-    st.success("✅ Tadeo AI está listo.")
+
+    st.success("✅ Tadeo AI está en línea y vinculada a tadeosantana.com")
+
+
+
 except Exception as e:
-    st.error(f"Error de inicio: {e}")
 
-# INTERFAZ
-pregunta = st.text_input("¿Qué quieres investigar?")
+    st.error(f"Error crítico de conexión: {e}")
 
-if st.button("Ejecutar"):
+
+
+# --- INTERFAZ DE USUARIO ---
+
+pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Precio del Bitcoin...")
+
+
+
+if st.button("Ejecutar Tadeo AI"):
+
     if pregunta:
-        with st.spinner("Buscando..."):
+
+        with st.spinner("Investigando..."):
+
             try:
-                # 1. Buscar
-                contexto = search.run(pregunta)
-                # 2. Responder
-                response = model.generate_content(f"Datos: {contexto}\nPregunta: {pregunta}")
-                st.write(response.text)
+
+                # Todo este bloque tiene 1 nivel de sangría (4 espacios)
+
+                busqueda = search.run(pregunta)
+
+                prompt = f"Datos: {busqueda}\nPregunta: {pregunta}"
+
+                respuesta = model.generate_content(prompt)
+
+                st.subheader("📝 Resultado:")
+
+                st.write(respuesta.text)
+
             except Exception as e:
-                # Aquí mostramos el error real sin mensajes de 'cupo agotado'
-                st.error(f"Error: {e}")
+
+                # Este 'except' debe estar alineado perfectamente con el 'try'
+
+                st.error(f"Error detectado: {e}")
+
+    else:
+
+        st.warning("Por favor, escribe una pregunta primero.")
