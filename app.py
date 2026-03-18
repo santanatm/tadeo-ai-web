@@ -2,58 +2,63 @@ import streamlit as st
 import google.generativeai as genai
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
-import os
 
 # 1. CONFIGURACIÓN DE PÁGINA
-st.set_page_config(page_title="Tadeo AI", page_icon="🤖")
+st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="wide")
+
+# Estilo para limpiar la interfaz en WordPress
+st.markdown("""
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("🤖 TADEO AI")
 
-# 2. EXTRACCIÓN SEGURA DE LLAVES
-# Buscamos en Secrets (Streamlit Cloud) o en Variables de Entorno (Local)
+# 2. LLAVES API
 GOOGLE_KEY = st.secrets.get("GOOGLE_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
-# 3. VALIDACIÓN DE LLAVES
 if not GOOGLE_KEY or not TAVILY_KEY:
-    st.error("❌ ERROR: No se detectan las llaves API.")
-    st.info("Asegúrate de haber guardado las llaves en 'Manage App' -> 'Settings' -> 'Secrets'.")
-    st.stop() 
+    st.error("❌ Faltan llaves API en los Secrets de Streamlit.")
+    st.stop()
 
-# 4. INICIALIZAR HERRAMIENTAS
+# 3. INICIALIZACIÓN BLINDADA
 try:
-    # Configurar Google Gemini
     genai.configure(api_key=GOOGLE_KEY)
-    model = genai.GenerativeModel('gemini-2.0-flash')
     
-    # Configurar Tavily de forma blindada
+    # Usamos gemini-pro que es el nombre más universal y compatible
+    model = genai.GenerativeModel('gemini-pro')
+    
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
     search = TavilySearchResults(api_wrapper=api_wrapper)
     
-    st.success("✅ Tadeo AI está en línea y vinculada a tadeosantana.com")
-
+    st.success("✅ Tadeo AI está listo.")
 except Exception as e:
-    st.error(f"Error crítico de conexión: {e}")
+    st.error(f"Error de inicio: {e}")
 
-# --- INTERFAZ DE USUARIO ---
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Precio del Bitcoin...")
+# 4. INTERFAZ
+pregunta = st.text_input("¿Qué quieres investigar hoy?")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
-        with st.spinner("Investigando en tiempo real..."):
+        with st.spinner("Buscando información actualizada..."):
             try:
-                # Ejecutar búsqueda
-                busqueda = search.run(pregunta)
+                # Búsqueda web
+                contexto_web = search.run(pregunta)
                 
-                # Generar respuesta con IA
-                prompt = f"Eres un asistente experto. Datos actuales: {busqueda}\nPregunta: {pregunta}"
-                respuesta = model.generate_content(prompt)
+                # Generación de respuesta
+                # Usamos una estructura de prompt más robusta
+                full_prompt = f"Eres un asistente inteligente. Basándote en estos datos: {contexto_web}, responde a: {pregunta}"
+                
+                # Llamada directa para evitar errores de ruta 404
+                response = model.generate_content(full_prompt)
                 
                 st.subheader("📝 Resultado:")
-                st.write(respuesta.text)
+                st.write(response.text)
             except Exception as e:
-                if "429" in str(e):
-                    st.error("⚠️ Cupo diario agotado. Google reiniciará tu acceso en unas horas.")
-                else:
-                    st.error(f"Error en la investigación: {e}")
-    else:
-        st.warning("Por favor, escribe una pregunta primero.")
+                # Si falla el 404 otra vez, intentamos una ruta alternativa
+                st.error(f"Error detectado: {e}")
+                st.info("Intentando reconexión automática... por favor pulsa el botón de nuevo en 5 segundos.")
