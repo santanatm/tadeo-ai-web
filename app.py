@@ -23,7 +23,7 @@ if not GOOGLE_KEY or not TAVILY_KEY:
 try:
     # Configurar Google Gemini
     genai.configure(api_key=GOOGLE_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash-latest')
     
     # Configurar Tavily de forma blindada
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
