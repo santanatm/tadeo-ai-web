@@ -6,25 +6,26 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS para eliminar el espacio superior y preparar el recorte inferior
+# Estilo CSS para limpiar la interfaz interna
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {display: none !important;}
     header {display: none !important;}
     
-    /* Eliminar el padding para que el contenido empiece desde arriba */
+    /* Subir todo el contenido para facilitar el recorte inferior */
     .block-container {
-        padding-top: 1rem !important;
+        padding-top: 0rem !important;
         padding-bottom: 0rem !important;
     }
     
-    /* Estilo del Botón Dorado */
+    /* Tu botón dorado personalizado */
     div.stButton > button:first-child {
         background-color: #bfa34b !important;
         color: white !important;
         border: none !important;
         font-weight: bold !important;
+        border-radius: 5px !important;
     }
     </style>
     """, unsafe_allow_html=True)
