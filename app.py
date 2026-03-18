@@ -6,46 +6,14 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS de máxima prioridad para limpieza total
-st.markdown("""
-    <style>
-    /* 1. Ocultar Menú, Footer y Header de forma absoluta */
-    #MainMenu {visibility: hidden !important;}
-    footer {display: none !important;}
-    header {display: none !important;}
-    
-    /* 2. Ocultar la barra inferior de 'Built with Streamlit' y el botón Fullscreen */
-    /* Este selector es universal para las versiones más nuevas */
-    [data-testid="stStatusWidget"], 
-    [data-testid="stDecoration"],
-    .stDeployButton,
-    div[class*="st-emotion-cache-zq5wms"],
-    div[class*="st-emotion-cache-1ky9as5"] {
-        display: none !important;
-        height: 0px !important;
-    }
-
-    /* 3. Eliminar espacios muertos en la parte inferior */
-    .main .block-container {
-        padding-bottom: 0rem !important;
-        margin-bottom: -5rem !important;
-    }
-
-    /* 4. Estilo del Botón Dorado (Manteniendo tu cambio exitoso) */
-    div.stButton > button:first-child {
-        background-color: #bfa34b !important;
-        color: white !important;
-        border: none !important;
-        font-weight: bold !important;
-        border-radius: 5px !important;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #000000 !important;
-        color: #bfa34b !important;
-        border: 1px solid #bfa34b !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# Estilo CSS
+<div style="width: 100%; height: 600px; overflow: hidden; position: relative;">
+    <iframe 
+        src="https://tadeo-ai-web-egsmvuebdwukslxqe2jnxb.streamlit.app/?embed=true" 
+        style="width: 100%; height: 650px; border: none; position: absolute; top: 0; left: 0;"
+        sandbox="allow-scripts allow-same-origin allow-forms"
+    ></iframe>
+</div>
 
 st.title("🤖 TADEO AI")
 
