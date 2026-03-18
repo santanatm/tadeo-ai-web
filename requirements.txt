@@ -5,3 +5,5 @@ tavily-python
 fpdf
 python-docx
 PyPDF2
+streamlit-mic-recorder
+gTTS
