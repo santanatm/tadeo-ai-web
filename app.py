@@ -80,9 +80,9 @@ pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who 
 # Botones visuales (decorativos o para funciones futuras)
 col_v1, col_v2, col_v3 = st.columns([1, 1, 8])
 with col_v1:
-    st.button("🎤", help="Dictado por voz")
+    st.button("🎤", help="Voice Dictation")
 with col_v2:
-    st.button("🔊", help="Escuchar respuesta")
+    st.button("🔊", help="Listen to the answer")
 
 # 6. LÓGICA DE EJECUCIÓN AUTOMÁTICA (Al detectar texto en 'pregunta')
 if pregunta:
