@@ -1,4 +1,5 @@
-streamlit
-google-generativeai
+streamlit>=1.30.0
+google-generativeai>=0.8.0
 langchain-community
+langchain-google-genai
 tavily-python
