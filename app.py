@@ -1,3 +1,6 @@
+st.write("¿Veo la llave de Google?:", "GOOGLE_API_KEY" in st.secrets)
+st.write("¿Veo la llave de Tavily?:", "TAVILY_API_KEY" in st.secrets)
+
 import streamlit as st
 import google.generativeai as genai
 from langchain_community.tools.tavily_search import TavilySearchResults
