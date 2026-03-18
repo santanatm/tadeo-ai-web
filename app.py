@@ -39,17 +39,17 @@ pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Prec
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
-        with st.spinner("Investigando en tiempo real..."):
-           try:
+        with st.spinner("Investigando..."):
+            try:
+                # Todo este bloque tiene 1 nivel de sangría (4 espacios)
                 busqueda = search.run(pregunta)
                 prompt = f"Datos: {busqueda}\nPregunta: {pregunta}"
                 respuesta = model.generate_content(prompt)
                 st.subheader("📝 Resultado:")
                 st.write(respuesta.text)
             except Exception as e:
-                # Esto nos dirá si es la llave de Tavily, Google o el Iframe
-                st.error(f"Error detectado: {e}") 
-                st.info("Nota: Si el error menciona '429', es cupo. Si dice 'Invalid API Key', es la configuración.")
+                # Este 'except' debe estar alineado perfectamente con el 'try'
+                st.error(f"Error detectado: {e}")
                 else:
                     st.error(f"Error en la investigación: {e}")
     else:
