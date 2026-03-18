@@ -44,7 +44,7 @@ with col1:
 with col2:
     # Mostramos el título alineado con la foto
     # Usamos un poco de margen superior (MT) para que el texto baje y se centre con tu foto
-    #st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
+    st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
 # 2. LLAVES API
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
