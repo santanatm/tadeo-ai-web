@@ -102,3 +102,11 @@ if st.button("Ejecutar Tadeo AI"):
                 st.error(f"Hubo un problema: {e}")
     else:
         st.warning("Escribe una pregunta primero.")
+
+# 4. INTERFAZ DE USUARIO personalizada
+try:
+    st.image("Tadeo_Santana.png", width=100) 
+except:
+    st.write("🤖") # Icono de respaldo si la foto no carga
+
+st.title("TADEO AI")
