@@ -6,105 +6,63 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS de máxima prioridad para limpieza total
+# Estilo CSS para eliminar el espacio superior y preparar el recorte inferior
 st.markdown("""
     <style>
-    /* 1. Ocultar Menú, Footer y Header de forma absoluta */
-    #MainMenu {visibility: hidden !important;}
+    #MainMenu {visibility: hidden;}
     footer {display: none !important;}
     header {display: none !important;}
     
-    /* 2. Ocultar la barra inferior de 'Built with Streamlit' y el botón Fullscreen */
-    /* Este selector es universal para las versiones más nuevas */
-    [data-testid="stStatusWidget"], 
-    [data-testid="stDecoration"],
-    .stDeployButton,
-    div[class*="st-emotion-cache-zq5wms"],
-    div[class*="st-emotion-cache-1ky9as5"] {
-        display: none !important;
-        height: 0px !important;
-    }
-
-    /* 3. Eliminar espacios muertos en la parte inferior */
-    .main .block-container {
+    /* Eliminar el padding para que el contenido empiece desde arriba */
+    .block-container {
+        padding-top: 1rem !important;
         padding-bottom: 0rem !important;
-        margin-bottom: -5rem !important;
     }
-
-    /* 4. Estilo del Botón Dorado (Manteniendo tu cambio exitoso) */
+    
+    /* Estilo del Botón Dorado */
     div.stButton > button:first-child {
         background-color: #bfa34b !important;
         color: white !important;
         border: none !important;
         font-weight: bold !important;
-        border-radius: 5px !important;
-    }
-    div.stButton > button:first-child:hover {
-        background-color: #000000 !important;
-        color: #bfa34b !important;
-        border: 1px solid #bfa34b !important;
     }
     </style>
     """, unsafe_allow_html=True)
 
 st.title("🤖 TADEO AI")
 
-# 2. EXTRACCIÓN DE LLAVES DESDE SECRETS
-# Asegúrate de tener 'GROQ_API_KEY' y 'TAVILY_API_KEY' en los Secrets de Streamlit
+# 2. LLAVES API
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
 if not GROQ_KEY or not TAVILY_KEY:
-    st.error("❌ Faltan llaves API (GROQ o TAVILY) en la configuración de Secrets.")
+    st.error("Faltan llaves API en Secrets.")
     st.stop()
 
-# 3. INICIALIZAR MOTORES
+# 3. INICIALIZAR
 try:
-    # Cliente de Groq (Ultra rápido)
     client = Groq(api_key=GROQ_KEY)
-    
-    # Buscador Tavily para datos en tiempo real
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
     search = TavilySearchResults(api_wrapper=api_wrapper)
-    
-    st.success("✅ Tadeo AI está en línea y listo.")
 except Exception as e:
-    st.error(f"Error al iniciar los servicios: {e}")
+    st.error(f"Error: {e}")
 
-# 4. INTERFAZ DE USUARIO
-pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: ¿Quién fue Albert Einstein?")
+# 4. INTERFAZ
+pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Escribe aquí...")
 
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
-        with st.spinner("Buscando información actualizada..."):
+        with st.spinner("Investigando..."):
             try:
-                # Paso 1: Búsqueda en la web
-                resultados_busqueda = search.run(pregunta)
-                
-                # Paso 2: Procesamiento con Llama 3.3 (El modelo más potente de Groq)
+                resultados = search.run(pregunta)
                 chat_completion = client.chat.completions.create(
                     messages=[
-                        {
-                            "role": "system",
-                            "content": (
-                                "Eres Tadeo AI, un asistente experto y preciso. "
-                                f"Utiliza estos datos de búsqueda para responder: {resultados_busqueda}. "
-                                "Si los datos no contienen la respuesta, indícalo cortésmente."
-                            )
-                        },
-                        {
-                            "role": "user",
-                            "content": pregunta,
-                        }
+                        {"role": "system", "content": f"Eres Tadeo AI. Responde usando estos datos: {resultados}"},
+                        {"role": "user", "content": pregunta}
                     ],
-                    model="llama-3.3-70b-versatile", # Versión estable y actualizada
+                    model="llama-3.3-70b-versatile",
                 )
-                
-                # Paso 3: Mostrar el resultado
                 st.subheader("📝 Resultado:")
                 st.write(chat_completion.choices[0].message.content)
-                
             except Exception as e:
-                st.error(f"Hubo un error durante la ejecución: {e}")
-    else:
-        st.warning("Por favor, escribe una pregunta primero.")
+                st.error(f"Error: {e}")
