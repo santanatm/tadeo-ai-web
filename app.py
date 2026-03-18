@@ -86,7 +86,7 @@ with col_v2:
 
 # 6. LÓGICA DE EJECUCIÓN AUTOMÁTICA (Al detectar texto en 'pregunta')
 if pregunta:
-    with st.spinner("Tadeo está procesando tu solicitud..."):
+    with st.spinner("Tadeo is processing your request...."):
         try:
             # Procesar contexto de archivo si existe
             contenido_archivo = ""
@@ -97,9 +97,9 @@ if pregunta:
             try:
                 resultados_raw = search.run(pregunta)
                 if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
-                    resultados_raw = "No hay datos web recientes disponibles por el momento."
+                    resultados_raw = "No recent web data is available at the moment."
             except:
-                resultados_raw = "No hay datos web recientes disponibles."
+                resultados_raw = "No recent web data is available at the moment."
 
             # Generación de respuesta con Llama 3.3
             chat_completion = client.chat.completions.create(
@@ -127,6 +127,6 @@ if pregunta:
             )
             
         except Exception as e:
-            st.error(f"Hubo un problema: {e}")
+            st.error(f"There was a problem.: {e}")
 elif archivo_subido and not pregunta:
-    st.info("Escribe una pregunta sobre el archivo que subiste y presiona ENTER.")
+    st.info("Write a question about the file you uploaded and press ENTER.")
