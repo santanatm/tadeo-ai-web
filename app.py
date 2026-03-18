@@ -3,25 +3,20 @@ from groq import Groq
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from fpdf import FPDF
+import PyPDF2
+from docx import Document
 import io
 
 # 1. PAGE CONFIGURATION
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Premium CSS Customization
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {display: none !important;}
     header {display: none !important;}
     .block-container {padding-top: 1rem !important;}
-    
-    /* File Uploader Style */
-    .stFileUploader section {
-        border: 1px solid #bfa34b !important;
-        border-radius: 5px;
-    }
-    /* PDF Download Button Style */
+    .stFileUploader section { border: 1px solid #bfa34b !important; border-radius: 5px; }
     .stDownloadButton > button {
         background-color: #333333 !important;
         color: #bfa34b !important;
@@ -42,7 +37,7 @@ with col_foto:
 with col_titulo:
     st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
-# 3. KEYS AND ENGINES CONFIGURATION
+# 3. KEYS AND ENGINES
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
@@ -57,7 +52,17 @@ try:
 except Exception as e:
     st.error(f"Initialization error: {e}")
 
-# 4. PDF GENERATION FUNCTION
+# 4. DOCUMENT TEXT EXTRACTION
+def get_file_content(file):
+    if file.type == "application/pdf":
+        reader = PyPDF2.PdfReader(file)
+        return " ".join([page.extract_text() for page in reader.pages])
+    elif file.type == "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+        doc = Document(file)
+        return " ".join([para.text for para in doc.paragraphs])
+    else: # Plain text
+        return file.read().decode("utf-8")
+
 def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
@@ -73,45 +78,35 @@ def crear_pdf(texto, consulta):
     return pdf.output(dest='S').encode('latin-1')
 
 # 5. INPUT SECTION
-# File uploader (Triggers script rerun on change)
 archivo_subido = st.file_uploader("Upload a file to analyze", type=['pdf', 'txt', 'docx'])
-
-# Text input (Triggers script rerun on Enter)
-pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)", key="user_input")
+pregunta = st.text_input("", placeholder="What do you want to know? (e.g. Who was Albert Einstein?)", key="user_input")
 
 # 6. AUTOMATIC EXECUTION LOGIC
-# Executes if there is a question OR if a file has just been uploaded
 if pregunta or archivo_subido:
     with st.spinner("Tadeo is processing your request..."):
         try:
-            # Process file context
-            contenido_archivo = ""
-            label_consulta = pregunta if pregunta else f"Automatic analysis of: {archivo_subido.name}"
-            
-            if archivo_subido:
-                # Basic file info as context
-                contenido_archivo = f"\n[Document attached for analysis: {archivo_subido.name}]"
-            
-            # Web search logic (only if there is a text query)
-            try:
-                if pregunta:
-                    resultados_raw = search.run(pregunta)
-                else:
-                    resultados_raw = f"General analysis requested for file: {archivo_subido.name}"
-                
-                if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
-                    resultados_raw = "No recent web data available."
-            except:
-                resultados_raw = "No recent web data available."
+            full_context = ""
+            label_name = pregunta if pregunta else f"Analysis of {archivo_subido.name}"
 
-            # AI Response Generation
+            # If a file is uploaded, extract its actual text
+            if archivo_subido:
+                file_text = get_file_content(archivo_subido)
+                full_context += f"\n[Document Content: {file_text}]\n"
+
+            # Web Search
+            try:
+                search_query = pregunta if pregunta else f"Summary of {archivo_subido.name}"
+                resultados_web = search.run(search_query)
+                if "401" not in str(resultados_web):
+                    full_context += f"\n[Web Context: {resultados_web}]\n"
+            except:
+                pass
+
+            # AI Generation
             chat_completion = client.chat.completions.create(
                 messages=[
-                    {
-                        "role": "system", 
-                        "content": "You are Tadeo AI, an expert assistant. Respond in English. If a file is provided, prioritize its analysis. Ignore technical API errors."
-                    },
-                    {"role": "user", "content": f"Context: {resultados_raw}{contenido_archivo}\n\nTask/Question: {label_consulta}"}
+                    {"role": "system", "content": "You are Tadeo AI. Respond in English. Use the provided document content and web context to give a detailed answer. Ignore API technical errors."},
+                    {"role": "user", "content": f"Context: {full_context}\n\nUser Question/Task: {label_name}"}
                 ],
                 model="llama-3.3-70b-versatile",
             )
@@ -120,14 +115,9 @@ if pregunta or archivo_subido:
             st.subheader("📝 Result:")
             st.write(respuesta_final)
             
-            # PDF Download Button
-            pdf_bytes = crear_pdf(respuesta_final, label_consulta)
-            st.download_button(
-                label="📥 Download report as PDF", 
-                data=pdf_bytes, 
-                file_name="Tadeo_AI_Report.pdf", 
-                mime="application/pdf"
-            )
+            # PDF Download
+            pdf_bytes = crear_pdf(respuesta_final, label_name)
+            st.download_button(label="📥 Download report as PDF", data=pdf_bytes, file_name="Tadeo_AI_Report.pdf", mime="application/pdf")
             
         except Exception as e:
             st.error(f"An error occurred: {e}")
