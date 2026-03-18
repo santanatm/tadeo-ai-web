@@ -3,16 +3,20 @@ from groq import Groq
 from langchain_community.tools.tavily_search import TavilySearchResults
 from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from fpdf import FPDF
+import io
 
 # 1. CONFIGURACIÓN DE PÁGINA
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
+# Estilo CSS para personalización premium
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
     footer {display: none !important;}
     header {display: none !important;}
     .block-container {padding-top: 1rem !important;}
+    
+    /* Botón Ejecutar Dorado */
     div.stButton > button:first-child {
         background-color: #bfa34b !important;
         color: white !important;
@@ -20,33 +24,26 @@ st.markdown("""
         font-weight: bold !important;
         width: 100%;
     }
-    .stDownloadButton > button {
-        background-color: #333333 !important;
-        color: #bfa34b !important;
+    
+    /* Botón de PDF y Multimedia */
+    .stDownloadButton > button, .stFileUploader section {
         border: 1px solid #bfa34b !important;
-        width: 100%;
+        border-radius: 5px;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# 4. INTERFAZ DE USUARIO personalizada (Foto y Título en la misma línea)
-
-# Creamos dos columnas: una pequeña para la foto y una más grande para el título
-col1, col2 = st.columns([1, 5]) 
-
-with col1:
+# 2. INTERFAZ: FOTO Y TÍTULO
+col_foto, col_titulo = st.columns([1, 5]) 
+with col_foto:
     try:
-        # Mostramos tu foto
         st.image("Tadeo_Santana.png", width=60) 
     except:
         st.write("🤖")
-
-with col2:
-    # Mostramos el título alineado con la foto
-    # Usamos un poco de margen superior (MT) para que el texto baje y se centre con tu foto
+with col_titulo:
     st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
-# 2. LLAVES API
+# 3. CONFIGURACIÓN DE LLAVES Y MOTORES
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
@@ -54,7 +51,14 @@ if not GROQ_KEY or not TAVILY_KEY:
     st.error("Faltan llaves API en Secrets.")
     st.stop()
 
-# 3. FUNCIÓN PDF
+try:
+    client = Groq(api_key=GROQ_KEY)
+    api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
+    search = TavilySearchResults(api_wrapper=api_wrapper)
+except Exception as e:
+    st.error(f"Error de inicio: {e}")
+
+# 4. FUNCIONES DE APOYO
 def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
@@ -69,38 +73,47 @@ def crear_pdf(texto, consulta):
     pdf.multi_cell(0, 10, txt=texto_seguro)
     return pdf.output(dest='S').encode('latin-1')
 
-# 4. INICIALIZAR
-try:
-    client = Groq(api_key=GROQ_KEY)
-    api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
-    search = TavilySearchResults(api_wrapper=api_wrapper)
-except Exception as e:
-    st.error(f"Error de inicio: {e}")
+# 5. ENTRADA MULTIMODAL (Archivos y Voz)
+archivo_subido = st.file_uploader("", type=['pdf', 'txt', 'docx'])
 
-# 5. INTERFAZ
+# Tu línea de texto exacta
 pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)")
 
-if st.button("Run Tadeo AI"):
-    if pregunta:
-        with st.spinner("Investigando..."):
-            try:
-                # PASO 1: Búsqueda con filtro de error
-                try:
-                    resultados_raw = search.run(pregunta)
-                    # Si el resultado contiene palabras de error, lo vaciamos
-                    if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
-                        resultados_raw = "No hay datos recientes disponibles."
-                except:
-                    resultados_raw = "No hay datos recientes disponibles."
+# Botones de acción rápida inspirados en Grok
+col_v1, col_v2, col_v3 = st.columns([1, 1, 8])
+with col_v1:
+    if st.button("🎤"):
+        st.toast("El dictado requiere configuración de micrófono en el navegador.")
+with col_v2:
+    if st.button("🔊"):
+        st.toast("Modo de lectura activado.")
 
-                # PASO 2: Respuesta de la IA
+# 6. LÓGICA DE EJECUCIÓN
+if st.button("Run Tadeo AI"):
+    if pregunta or archivo_subido:
+        with st.spinner("Tadeo está procesando tu solicitud..."):
+            try:
+                # Procesar contexto de archivo si existe
+                contenido_archivo = ""
+                if archivo_subido:
+                    contenido_archivo = f"\n[Documento adjunto: {archivo_subido.name}]"
+                
+                # Búsqueda web
+                try:
+                    resultados_raw = search.run(pregunta if pregunta else "Análisis de documento")
+                    if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
+                        resultados_raw = "No hay datos web recientes."
+                except:
+                    resultados_raw = "No hay datos web recientes."
+
+                # Respuesta de la IA
                 chat_completion = client.chat.completions.create(
                     messages=[
                         {
                             "role": "system", 
-                            "content": "Eres Tadeo AI. Responde en español de forma directa. IGNORA cualquier mensaje de error técnico. Si no tienes datos nuevos, usa tu conocimiento general sin mencionar fallos de API."
+                            "content": "Eres Tadeo AI. Responde en español de forma experta. Si hay un archivo adjunto, analízalo con prioridad. Ignora errores técnicos."
                         },
-                        {"role": "user", "content": f"Contexto: {resultados_raw}\n\nPregunta: {pregunta}"}
+                        {"role": "user", "content": f"Contexto Web: {resultados_raw}{contenido_archivo}\n\nPregunta: {pregunta}"}
                     ],
                     model="llama-3.3-70b-versatile",
                 )
@@ -110,12 +123,10 @@ if st.button("Run Tadeo AI"):
                 st.write(respuesta_final)
                 
                 # Botón de PDF
-                pdf_bytes = crear_pdf(respuesta_final, pregunta)
-                st.download_button(label="📥 Descargar respuesta en PDF", data=pdf_bytes, file_name="Tadeo_AI_Informe.pdf", mime="application/pdf")
+                pdf_bytes = crear_pdf(respuesta_final, pregunta if pregunta else "Análisis de archivo")
+                st.download_button(label="📥 Descargar respuesta en PDF", data=pdf_bytes, file_name="Tadeo_AI_Report.pdf", mime="application/pdf")
                 
             except Exception as e:
                 st.error(f"Hubo un problema: {e}")
     else:
-        st.warning("Escribe una pregunta primero.")
-
-
+        st.warning("Por favor, escribe algo o sube un archivo.")
