@@ -5,10 +5,10 @@ from langchain_community.utilities.tavily_search import TavilySearchAPIWrapper
 from fpdf import FPDF
 import io
 
-# 1. CONFIGURACIÓN DE PÁGINA
+# 1. PAGE CONFIGURATION
 st.set_page_config(page_title="Tadeo AI", page_icon="🤖", layout="centered")
 
-# Estilo CSS para personalización premium
+# Premium CSS Customization
 st.markdown("""
     <style>
     #MainMenu {visibility: hidden;}
@@ -16,7 +16,7 @@ st.markdown("""
     header {display: none !important;}
     .block-container {padding-top: 1rem !important;}
     
-    /* Estilo para el área de carga de archivos y botones multimedia */
+    /* File Uploader and Multimedia Buttons Style */
     .stFileUploader section {
         border: 1px solid #bfa34b !important;
         border-radius: 5px;
@@ -31,7 +31,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# 2. INTERFAZ: FOTO Y TÍTULO
+# 2. INTERFACE: PHOTO AND TITLE
 col_foto, col_titulo = st.columns([1, 5]) 
 with col_foto:
     try:
@@ -41,12 +41,12 @@ with col_foto:
 with col_titulo:
     st.markdown("<h1 style='margin-top: -10px;'>TADEO AI</h1>", unsafe_allow_html=True)
 
-# 3. CONFIGURACIÓN DE LLAVES Y MOTORES
+# 3. KEYS AND ENGINES CONFIGURATION
 GROQ_KEY = st.secrets.get("GROQ_API_KEY")
 TAVILY_KEY = st.secrets.get("TAVILY_API_KEY")
 
 if not GROQ_KEY or not TAVILY_KEY:
-    st.error("Faltan llaves API en Secrets.")
+    st.error("API Keys missing in Secrets.")
     st.stop()
 
 try:
@@ -54,9 +54,9 @@ try:
     api_wrapper = TavilySearchAPIWrapper(tavily_api_key=TAVILY_KEY)
     search = TavilySearchResults(api_wrapper=api_wrapper)
 except Exception as e:
-    st.error(f"Error de inicio: {e}")
+    st.error(f"Initialization error: {e}")
 
-# 4. FUNCIÓN PARA GENERAR PDF
+# 4. PDF GENERATION FUNCTION
 def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
@@ -64,36 +64,37 @@ def crear_pdf(texto, consulta):
     pdf.cell(200, 10, txt="Tadeo AI Report", ln=True, align='C')
     pdf.ln(10)
     pdf.set_font("Arial", 'B', 12)
-    pdf.multi_cell(0, 10, txt=f"Pregunta: {consulta}")
+    pdf.multi_cell(0, 10, txt=f"Question: {consulta}")
     pdf.ln(5)
     pdf.set_font("Arial", size=11)
+    # Clean text for latin-1 compatibility
     texto_seguro = texto.encode('latin-1', 'replace').decode('latin-1')
     pdf.multi_cell(0, 10, txt=texto_seguro)
     return pdf.output(dest='S').encode('latin-1')
 
-# 5. ENTRADA MULTIMODAL
-archivo_subido = st.file_uploader("", type=['pdf', 'txt', 'docx'])
+# 5. MULTIMODAL INPUT
+archivo_subido = st.file_uploader("Upload a file to analyze", type=['pdf', 'txt', 'docx'])
 
-# Al presionar ENTER en este campo, Streamlit recarga la página y 'pregunta' deja de estar vacía
+# Pressing ENTER here triggers the execution
 pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)", key="user_input")
 
-# Botones visuales (decorativos o para funciones futuras)
+# Visual functional buttons
 col_v1, col_v2, col_v3 = st.columns([1, 1, 8])
 with col_v1:
     st.button("🎤", help="Voice Dictation")
 with col_v2:
     st.button("🔊", help="Listen to the answer")
 
-# 6. LÓGICA DE EJECUCIÓN AUTOMÁTICA (Al detectar texto en 'pregunta')
+# 6. AUTOMATIC EXECUTION LOGIC
 if pregunta:
-    with st.spinner("Tadeo is processing your request...."):
+    with st.spinner("Tadeo is processing your request..."):
         try:
-            # Procesar contexto de archivo si existe
+            # Process file context if exists
             contenido_archivo = ""
             if archivo_subido:
-                contenido_archivo = f"\n[Documento adjunto detectado: {archivo_subido.name}]"
+                contenido_archivo = f"\n[Attached document detected: {archivo_subido.name}]"
             
-            # Búsqueda web con protección contra errores 401
+            # Web search with 401 error protection
             try:
                 resultados_raw = search.run(pregunta)
                 if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
@@ -101,32 +102,32 @@ if pregunta:
             except:
                 resultados_raw = "No recent web data is available at the moment."
 
-            # Generación de respuesta con Llama 3.3
+            # AI Response Generation
             chat_completion = client.chat.completions.create(
                 messages=[
                     {
                         "role": "system", 
-                        "content": "Eres Tadeo AI. Responde en español de forma experta. Si hay un archivo adjunto, analízalo. Ignora errores técnicos de API."
+                        "content": "You are Tadeo AI, an expert assistant. Respond in English. If a file is attached, analyze it. Ignore technical API errors."
                     },
-                    {"role": "user", "content": f"Contexto: {resultados_raw}{contenido_archivo}\n\nPregunta: {pregunta}"}
+                    {"role": "user", "content": f"Context: {resultados_raw}{contenido_archivo}\n\nQuestion: {pregunta}"}
                 ],
                 model="llama-3.3-70b-versatile",
             )
             
             respuesta_final = chat_completion.choices[0].message.content
-            st.subheader("📝 Result found:")
+            st.subheader("📝 Result:")
             st.write(respuesta_final)
             
-            # Botón de descarga PDF (aparece solo después del resultado)
+            # PDF Download Button
             pdf_bytes = crear_pdf(respuesta_final, pregunta)
             st.download_button(
-                label="📥 Download result as PDF", 
+                label="📥 Download report as PDF", 
                 data=pdf_bytes, 
                 file_name="Tadeo_AI_Report.pdf", 
                 mime="application/pdf"
             )
             
         except Exception as e:
-            st.error(f"There was a problem.: {e}")
+            st.error(f"An error occurred: {e}")
 elif archivo_subido and not pregunta:
-    st.info("Write a question about the file you uploaded and press ENTER.")
+    st.info("Please type a question about the uploaded file and press ENTER.")
