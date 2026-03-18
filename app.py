@@ -16,19 +16,17 @@ st.markdown("""
     header {display: none !important;}
     .block-container {padding-top: 1rem !important;}
     
-    /* Botón Ejecutar Dorado */
-    div.stButton > button:first-child {
-        background-color: #bfa34b !important;
-        color: white !important;
-        border: none !important;
-        font-weight: bold !important;
-        width: 100%;
-    }
-    
-    /* Botón de PDF y Multimedia */
-    .stDownloadButton > button, .stFileUploader section {
+    /* Estilo para el área de carga de archivos y botones multimedia */
+    .stFileUploader section {
         border: 1px solid #bfa34b !important;
         border-radius: 5px;
+    }
+    .stDownloadButton > button {
+        background-color: #333333 !important;
+        color: #bfa34b !important;
+        border: 1px solid #bfa34b !important;
+        width: 100%;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
@@ -58,7 +56,7 @@ try:
 except Exception as e:
     st.error(f"Error de inicio: {e}")
 
-# 4. FUNCIONES DE APOYO
+# 4. FUNCIÓN PARA GENERAR PDF
 def crear_pdf(texto, consulta):
     pdf = FPDF()
     pdf.add_page()
@@ -73,60 +71,62 @@ def crear_pdf(texto, consulta):
     pdf.multi_cell(0, 10, txt=texto_seguro)
     return pdf.output(dest='S').encode('latin-1')
 
-# 5. ENTRADA MULTIMODAL (Archivos y Voz)
+# 5. ENTRADA MULTIMODAL
 archivo_subido = st.file_uploader("", type=['pdf', 'txt', 'docx'])
 
-# Tu línea de texto exacta
-pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)")
+# Al presionar ENTER en este campo, Streamlit recarga la página y 'pregunta' deja de estar vacía
+pregunta = st.text_input("", placeholder="What do you want to know?   (e.g. Who was Albert Einstein?)", key="user_input")
 
-# Botones de acción rápida inspirados en Grok
+# Botones visuales (decorativos o para funciones futuras)
 col_v1, col_v2, col_v3 = st.columns([1, 1, 8])
 with col_v1:
-    if st.button("🎤"):
-        st.toast("El dictado requiere configuración de micrófono en el navegador.")
+    st.button("🎤", help="Dictado por voz")
 with col_v2:
-    if st.button("🔊"):
-        st.toast("Modo de lectura activado.")
+    st.button("🔊", help="Escuchar respuesta")
 
-# 6. LÓGICA DE EJECUCIÓN
-if st.button("Run Tadeo AI"):
-    if pregunta or archivo_subido:
-        with st.spinner("Tadeo está procesando tu solicitud..."):
+# 6. LÓGICA DE EJECUCIÓN AUTOMÁTICA (Al detectar texto en 'pregunta')
+if pregunta:
+    with st.spinner("Tadeo está procesando tu solicitud..."):
+        try:
+            # Procesar contexto de archivo si existe
+            contenido_archivo = ""
+            if archivo_subido:
+                contenido_archivo = f"\n[Documento adjunto detectado: {archivo_subido.name}]"
+            
+            # Búsqueda web con protección contra errores 401
             try:
-                # Procesar contexto de archivo si existe
-                contenido_archivo = ""
-                if archivo_subido:
-                    contenido_archivo = f"\n[Documento adjunto: {archivo_subido.name}]"
-                
-                # Búsqueda web
-                try:
-                    resultados_raw = search.run(pregunta if pregunta else "Análisis de documento")
-                    if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
-                        resultados_raw = "No hay datos web recientes."
-                except:
-                    resultados_raw = "No hay datos web recientes."
+                resultados_raw = search.run(pregunta)
+                if "401" in str(resultados_raw) or "Unauthorized" in str(resultados_raw):
+                    resultados_raw = "No hay datos web recientes disponibles por el momento."
+            except:
+                resultados_raw = "No hay datos web recientes disponibles."
 
-                # Respuesta de la IA
-                chat_completion = client.chat.completions.create(
-                    messages=[
-                        {
-                            "role": "system", 
-                            "content": "Eres Tadeo AI. Responde en español de forma experta. Si hay un archivo adjunto, analízalo con prioridad. Ignora errores técnicos."
-                        },
-                        {"role": "user", "content": f"Contexto Web: {resultados_raw}{contenido_archivo}\n\nPregunta: {pregunta}"}
-                    ],
-                    model="llama-3.3-70b-versatile",
-                )
-                
-                respuesta_final = chat_completion.choices[0].message.content
-                st.subheader("📝 Resultado:")
-                st.write(respuesta_final)
-                
-                # Botón de PDF
-                pdf_bytes = crear_pdf(respuesta_final, pregunta if pregunta else "Análisis de archivo")
-                st.download_button(label="📥 Descargar respuesta en PDF", data=pdf_bytes, file_name="Tadeo_AI_Report.pdf", mime="application/pdf")
-                
-            except Exception as e:
-                st.error(f"Hubo un problema: {e}")
-    else:
-        st.warning("Por favor, escribe algo o sube un archivo.")
+            # Generación de respuesta con Llama 3.3
+            chat_completion = client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system", 
+                        "content": "Eres Tadeo AI. Responde en español de forma experta. Si hay un archivo adjunto, analízalo. Ignora errores técnicos de API."
+                    },
+                    {"role": "user", "content": f"Contexto: {resultados_raw}{contenido_archivo}\n\nPregunta: {pregunta}"}
+                ],
+                model="llama-3.3-70b-versatile",
+            )
+            
+            respuesta_final = chat_completion.choices[0].message.content
+            st.subheader("📝 Resultado:")
+            st.write(respuesta_final)
+            
+            # Botón de descarga PDF (aparece solo después del resultado)
+            pdf_bytes = crear_pdf(respuesta_final, pregunta)
+            st.download_button(
+                label="📥 Descargar respuesta en PDF", 
+                data=pdf_bytes, 
+                file_name="Tadeo_AI_Report.pdf", 
+                mime="application/pdf"
+            )
+            
+        except Exception as e:
+            st.error(f"Hubo un problema: {e}")
+elif archivo_subido and not pregunta:
+    st.info("Escribe una pregunta sobre el archivo que subiste y presiona ENTER.")
