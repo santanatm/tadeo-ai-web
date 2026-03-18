@@ -40,19 +40,16 @@ pregunta = st.text_input("¿Qué quieres investigar hoy?", placeholder="Ej: Prec
 if st.button("Ejecutar Tadeo AI"):
     if pregunta:
         with st.spinner("Investigando en tiempo real..."):
-            try:
-                # Ejecutar búsqueda
+           try:
                 busqueda = search.run(pregunta)
-                
-                # Generar respuesta con IA
-                prompt = f"Eres un asistente experto. Datos actuales: {busqueda}\nPregunta: {pregunta}"
+                prompt = f"Datos: {busqueda}\nPregunta: {pregunta}"
                 respuesta = model.generate_content(prompt)
-                
                 st.subheader("📝 Resultado:")
                 st.write(respuesta.text)
             except Exception as e:
-                if "429" in str(e):
-                    st.error("⚠️ Cupo diario agotado. Google reiniciará tu acceso en unas horas.")
+                # Esto nos dirá si es la llave de Tavily, Google o el Iframe
+                st.error(f"Error detectado: {e}") 
+                st.info("Nota: Si el error menciona '429', es cupo. Si dice 'Invalid API Key', es la configuración.")
                 else:
                     st.error(f"Error en la investigación: {e}")
     else:
